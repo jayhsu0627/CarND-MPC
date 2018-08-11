@@ -91,7 +91,7 @@ For this project, we followed an empirical approach of trial and error to choose
 
 * Polynomial Fitting and MPC Preprocessing
 Before fitting the path returned from the simulator, we have to preprocess in order to move the points to the origin (x=0, y=0) and also rotate the path to follow the car orientation.
-'
+~~~~
 for(unsigned int i=0; i < ptsx.size(); i++){
 	//shift points to the initial point
 	double shift_x = ptsx[i] -px;
@@ -102,12 +102,12 @@ for(unsigned int i=0; i < ptsx.size(); i++){
 	ptsx[i] = (shift_x * cos(0-psi) - shift_y*sin(0-psi));
 	ptsy[i] = (shift_x * sin(0-psi) + shift_y*cos(0-psi));
 }
-'
+~~~~
 * Latency
 
 In order to deal with the latency, we have to predict the next state before calling the MPC solver. It can be acoomplished using the Model equations. A latency of 100ms is defined.
 
-'
+```
 double dt = 0.1
 fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * (dt ));
 fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * (dt ));
@@ -116,7 +116,7 @@ fg[1 + v_start + t] = v1 - (v0 + a0 * (dt ));
 fg[1 + cte_start + t] = cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * (dt )));
 fg[1 + epsi_start + t] = epsi1 - ((psi0 - psides0) - v0 * delta0 / Lf * (dt ));
 
-'
+```
 ## Hints!
 
 * You don't have to follow this directory structure, but if you do, your work
