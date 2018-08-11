@@ -6,7 +6,7 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 25.0;
+size_t N = 25;
 double dt = 0.05;
 
 // This value assumes the model presented in the classroom is used.
@@ -78,12 +78,12 @@ class FG_eval {
     // We add 1 to each of the starting indices due to cost being located at
     // index 0 of `fg`.
     // This bumps up the position of all the other values.
-    fg[1 + x_start] = vars[x_start];
-    fg[1 + y_start] = vars[y_start];
-    fg[1 + psi_start] = vars[psi_start];
-    fg[1 + v_start] = vars[v_start];
-    fg[1 + cte_start] = vars[cte_start];
-    fg[1 + epsi_start] = vars[epsi_start];
+      fg[1 + x_start] = vars[x_start];
+      fg[1 + y_start] = vars[y_start];
+      fg[1 + psi_start] = vars[psi_start];
+      fg[1 + v_start] = vars[v_start];
+      fg[1 + cte_start] = vars[cte_start];
+      fg[1 + epsi_start] = vars[epsi_start];
 
     // The rest of the constraints
     for (int t = 1; t < N; t++) {
@@ -138,6 +138,12 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   bool ok = true;
   size_t i;
   typedef CPPAD_TESTVECTOR(double) Dvector;
+  double x = state[0];
+  double y = state[1];
+  double psi = state[2];
+  double v = state[3];
+  double cte = state[4];
+  double epsi = state[5];
 
   // TODO: Set the number of model variables (includes both states and inputs).
   // For example: If the state is a 4 element vector, the actuators is a 2
