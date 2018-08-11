@@ -13,18 +13,26 @@ The Prediction Horizom is the duration over which future predictions are made. I
 
 The number N also determines the number of variables optmized by the controller. So, higher N will result in extra computational cost.
 
-
-
 * **State**
 
 The state consists of sytem variables and errors references: [x,y,psi,v,cte,epsi]. x and y stand for the vehicle position, psi the vehicle orientation, v the vehicle speed and finally, cte and epsi stand for the cross track error and orientation error of the vehicle related to the reference.
 
 
-* **Model (Update equations)**
+* **Model**
 
-The followind equations updates the prediction model at every timestep:
+The following equations updates the prediction model at every timestep:
 
-equation
+![equation](http://latex.codecogs.com/gif.latex?x_%28t&plus;1%29%20%3D%20x_t%20&plus;%20v_t%20*%20cos%28%5Cpsi_t%29*dt)
+
+![equation](http://latex.codecogs.com/gif.latex?y_%28t&plus;1%29%20%3D%20y_t%20&plus;%20v_t%20*%20sin%28%5Cpsi_t%29*dt)
+
+![equation](http://latex.codecogs.com/gif.latex?%5Cpsi%20_%28t&plus;1%29%20%3D%20%5Cpsi%20_t%20&plus;%20%5Cfrac%7Bv_t%7D%7BL_f%7D*%20%5Cdelta_t%20*%20dt)
+
+![equation](http://latex.codecogs.com/gif.latex?v_%28t&plus;1%29%20%3D%20v%20_t%20&plus;%20a_t%20*%20dt)
+
+![equation](http://latex.codecogs.com/gif.latex?cte_%28t&plus;1%29%20%3D%20f%28x_t%29%20-%20y_t%20&plus;%20v%20_t%20*%20sin%28e%5Cpsi%20_t%29%20*%20dt)
+
+![equation](http://latex.codecogs.com/gif.latex?e%5Cpsi%20_%28t&plus;1%29%20%3D%20%5Cpsi%20_t%20-%20%5Cpsi%20dest%20&plus;%20%5Cfrac%7Bv_f%7D%7BL_f%7D%20*%20%5Cdelta_t%20*%20dt)
 
 
 Lf measures the distance between the front of the vehicle and its center of gravity. f(x) is the evaluation of the polynomial f at point x and psidest is the tangencial angle of the polynomial f evaluated at x.
@@ -32,22 +40,20 @@ Lf measures the distance between the front of the vehicle and its center of grav
 
 * **Timestep Length and Elapsed Duration (N & dt)**
 
-For this project, we followed an empirical approach of trial and error to choose the horizom values. We tried for N values between 10 and 20 and for dt 0.05 and 0.1. The best result was achieved with N=10 and dt=0.1, givin a time horizom of 1 second. 
+For this project, the duration was defined as N=10 and dt=0.1, givin a time horizon of 1 second.
 
-* **Polynomial Fitting and MPC Preprocessing**
+* **Polynomial Fitting**
 
 Before fitting the path returned from the simulator, we have to preprocess in order to move the points to the origin (x=0, y=0) and also rotate the path to follow the car orientation.
 ~~~~
 for(unsigned int i=0; i < ptsx.size(); i++){
-	//shift points to the initial point
-	double shift_x = ptsx[i] -px;
-	double shift_y = ptsy[i] -py;
+      
+//shift car reference angle to 90 degrees
+    double shift_x = ptsx[i] -px;
+    double shift_y = ptsy[i] -py;
+    ptsx[i] = (shift_x * cos(0-psi) - shift_y*sin(0-psi));
+    ptsy[i] = (shift_x * sin(0-psi) + shift_y*cos(0-psi));
 
-	//rotate 90 degrees
-	//http://planning.cs.uiuc.edu/node99.html
-	ptsx[i] = (shift_x * cos(0-psi) - shift_y*sin(0-psi));
-	ptsy[i] = (shift_x * sin(0-psi) + shift_y*cos(0-psi));
-}
 ~~~~
 * **Latency**
 
