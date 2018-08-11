@@ -11,8 +11,8 @@ using CppAD::AD;
 */
 
 // T = N * dt should be as large as possible
-size_t N = 25; 
-double dt = 0.05; // This should be as small as possible
+size_t N = 10; 
+double dt = 0.1; // This should be as small as possible
 
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
@@ -25,7 +25,7 @@ size_t cte_start = v_start + N;
 size_t epsi_start = cte_start + N;
 size_t delta_start = epsi_start + N;
 size_t a_start = delta_start + N - 1;
-double reference_v = 70;
+double reference_v = 150;
 
 
 class FG_eval {
@@ -42,21 +42,21 @@ class FG_eval {
 
     // Adding Cost section
     for (int t = 0; t < N; t++) {
-      fg[0] += 10 * CppAD::pow(vars[cte_start + t], 2);
-      fg[0] += 100 * CppAD::pow(vars[epsi_start + t], 2);
-      fg[0] += CppAD::pow(vars[v_start + t] - reference_v, 2);  // Reference velocity cost
+      fg[0] += 10000 * CppAD::pow(vars[cte_start + t], 2);
+      fg[0] += 10000 * CppAD::pow(vars[epsi_start + t], 2);
+      fg[0] += 5*CppAD::pow(vars[v_start + t] - reference_v, 2);  // Reference velocity cost
     }
 
-    // Minimize the5use of actuators.
+    // Minimize the use of actuators.
     for (int t = 0; t < N - 1; t++) {
-      fg[0] += 100 * CppAD::pow(vars[delta_start + t], 2);
-      fg[0] += 100 * CppAD::pow(vars[a_start + t], 2);
+      fg[0] += 250 * CppAD::pow(vars[delta_start + t], 2);
+      fg[0] += 50 * CppAD::pow(vars[a_start + t], 2);
     }
 
     // Minimize the value gap between sequential actuations. It enables vehicle move smoothly
     for (int t = 0; t < N - 2; t++) {
-      fg[0] += 100 * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
-      fg[0] += 50 * CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
+      fg[0] += 5 * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+      fg[0] += 5 * CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
     }
 
     // Initialization
@@ -90,18 +90,16 @@ class FG_eval {
       AD<double> a0 = vars[a_start + t - 1];
 
       // 3rd order polynomial
-      AD<double> f0 = coeffs[3] * pow(x0, 3) + coeffs[2] * pow(x0, 2) + coeffs[1] * x0 + coeffs[0];
-      AD<double> derivative = 3 * coeffs[3] * CppAD::pow(x0, 2) + 2 * coeffs[2] * x0 + coeffs[1];
-      AD<double> psides0 = CppAD::atan(derivative);
+      AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * x0 * x0 + coeffs[3] * x0 * x0 * x0;
+      AD<double> psides0 =  CppAD::atan(3*coeffs[3]*x0*x0 + 2*coeffs[2]*x0 + coeffs[1]);
 
       // Get next values
-      double latency = 0.1;
-      fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * (dt + latency));
-      fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * (dt + latency));
-      fg[1 + psi_start + t] = psi1 - (psi0 - v0 * delta0 / Lf * (dt + latency) );  // To turn to correct orientation
-      fg[1 + v_start + t] = v1 - (v0 + a0 * (dt + latency));
-      fg[1 + cte_start + t] = cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * (dt + latency)));
-      fg[1 + epsi_start + t] = epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * (dt + latency));
+      fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * (dt ));
+      fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * (dt ));
+      fg[1 + psi_start + t] = psi1 - (psi0 - v0 * delta0 / Lf * (dt ) );  // To turn to correct orientation
+      fg[1 + v_start + t] = v1 - (v0 + a0 * (dt ));
+      fg[1 + cte_start + t] = cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * (dt )));
+      fg[1 + epsi_start + t] = epsi1 - ((psi0 - psides0) - v0 * delta0 / Lf * (dt ));
     }
   }
 };
@@ -143,18 +141,22 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
   Dvector vars_lowerbound(n_vars);
   Dvector vars_upperbound(n_vars);
+  // Lower and upper limits for variables.
+
   for (int i = 0; i < delta_start; i++) {
     vars_lowerbound[i] = -1.0e19;
     vars_upperbound[i] = 1.0e19;
   }
 
-  // For delta. [-25, 25] in radians
+  // The upper and lower limits of delta are set to -25 and 25
+  // degrees (values in radians).
   for (int i = delta_start; i < a_start; i++) {
-    vars_lowerbound[i] = -0.436332;
-    vars_upperbound[i] = 0.436332;
+    vars_lowerbound[i] = -0.436332*Lf;
+    vars_upperbound[i] = 0.436332*Lf;
   }
 
-  // For a
+  // Acceleration/decceleration upper and lower limits.
+
   for (int i = a_start; i < n_vars; i++) {
     vars_lowerbound[i] = -1.0;
     vars_upperbound[i] = 1.0;
@@ -218,6 +220,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   vector<double> result;
   result.push_back(solution.x[delta_start]);
   result.push_back(solution.x[a_start]);
+
   for (int i = 0; i < N-1; i++) {
     result.push_back(solution.x[x_start + i + 1]);
     result.push_back(solution.x[y_start + i + 1]);
