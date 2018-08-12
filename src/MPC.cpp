@@ -25,7 +25,7 @@ size_t cte_start = v_start + N;
 size_t epsi_start = cte_start + N;
 size_t delta_start = epsi_start + N;
 size_t a_start = delta_start + N - 1;
-double reference_v = 150;
+double reference_v = 70;
 
 
 class FG_eval {
